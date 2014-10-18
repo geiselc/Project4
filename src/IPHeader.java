@@ -2,7 +2,7 @@
 public class IPHeader {
 	protected int version;
 	protected int ihl;
-	protected String tos;
+	protected int tos;
 	protected int totalLength;
 	//skipping id, flags, and frag-offset fields since we don't need to do fragmentation for this project
 	protected int ttl;
@@ -15,7 +15,7 @@ public class IPHeader {
 		
 	}
 	
-	public IPHeader(int version, int ihl, String tos, int totalLength, int ttl, String protocol, 
+	public IPHeader(int version, int ihl, int tos, int totalLength, int ttl, String protocol, 
 			String checkSum, String srcAddress, String dstAddress){
 		this.version = version;
 		this.ihl = ihl;
@@ -44,11 +44,11 @@ public class IPHeader {
 		this.ihl = ihl;
 	}
 	
-	public String getTos(){
+	public int getTos(){
 		return this.tos;
 	}
 	
-	public void setTos(String tos){
+	public void setTos(int tos){
 		this.tos = tos;
 	}
 	
