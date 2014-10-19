@@ -246,7 +246,23 @@ public class OverlayClient {
 
 	private class Read extends Thread {
 		public void run() {
-
+			while(true) {
+				
+				// receive the packet
+				byte[] receiveData = new byte[1024];
+				DatagramPacket receivePacket = new DatagramPacket(receiveData,receiveData.length);
+				try{
+				    clientSocket.receive(receivePacket);
+				} catch(IOException e){
+				    System.out.println("Sorry, didn't get anything");
+				    return;
+				}
+				
+				// verify IP and UDP checksum
+				
+				// print out message
+				
+			}
 		}
 	}
 }
