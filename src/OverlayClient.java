@@ -7,8 +7,12 @@ public class OverlayClient {
 	public static IPHeader ipHeader;
 	public static UDPHeader udpHeader;
 
+	/** TODO:
+	 * 	We need to convert this to contain a send and receive thread. The send portion is 
+	 *  just about done, just need to convert it to work as a thread. 
+	 *  Receive Thread needs to get a packet, and error check the checksum. 
+	 */
 	public static void main(String[] args) {
-		InetAddress IP;
 		BufferedReader readIn = new BufferedReader(new InputStreamReader(System.in));
 		
 		String userIp;
@@ -42,6 +46,9 @@ public class OverlayClient {
 					+ (message.getBytes().length * 8)); 	// If I'm understanding this right, total length is the header (20 bytes) + data (the message)
 			ipHeader.setTtl("00000110");	// Set as 6 since there are 6 nodes total on our overlay network, so I'm guessing at most there would be 6 hops...right? Will need to decrement this value in our router class
 			ipHeader.setProtocol("00010001");	// UDP - 17
+			
+			// TODO - Swap this to get the address of the node we are transmitting from, instead of local host. May need to parse the config file, or switch it to manual entry in main above
+			//        as we are doing with obtaining the dst address
 			ipHeader.setSrcAddress(InetAddress.getLocalHost().getHostAddress().toString());
 			ipHeader.setDstAddress(dstIP);
 			ipHeader.setCheckSum(ipCheckSum());
@@ -49,20 +56,17 @@ public class OverlayClient {
 			/** Build the UDP Header */
 			udpHeader.setSrcPort("0010011010010100");	// 9876
 			udpHeader.setDstPort("0010011010010100");	// 9876
-				/* Need to get proper padded length of data */
+			/* Need to get proper padded length of data */
 				String zero8 = "00000000";
 				String padString = "";
 				int messageLength = message.getBytes().length * 8;
 				int pad = messageLength % 2;
-				
 				if (pad == 1) {
 					padString = zero8;
 				}
-				
-				
 				int udpLength = 12 + 8 + messageLength + pad;
 			udpHeader.setLength(udpLength);
-			// checksum
+			udpHeader.setCheckSum(udpCheckSum());
 			
 /** The old code is listed below: **/
 //			String zero8 = "00000000";
@@ -154,6 +158,27 @@ public class OverlayClient {
 		return result;
 	}
 	
+	public static String udpCheckSum(){
+		String result = "";
+		String a ="", b = "";
+		String temp = "";
+		
+		a = addrToBinary(ipHeader.getSrcAddress());
+		b = addrToBinary(ipHeader.getDstAddress());
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+		
+		a = temp;
+		b = ipHeader.getProtocol();	// UDP Protocol - 17
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+		
+		a = temp;
+		b = Long.toBinaryString(udpHeader.getLength());
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+		
+		result = complement(temp);
+		return result;
+	}
+	
 	public static String addrToBinary(String addr){
 		String addrBits = "";
 		String[] temp = addr.split("\\.");
@@ -180,9 +205,7 @@ public class OverlayClient {
 				temp[i] = '0';
 		}
 		
-		System.out.println(comp);
 		result = new String(temp);
-		System.out.println(result);
 		return result;
 	}
 }
