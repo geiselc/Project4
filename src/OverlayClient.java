@@ -134,21 +134,21 @@ public class OverlayClient {
 		a += ipHeader.getVersion();
 		a += ipHeader.getIhl();
 		a += ipHeader.getTos();
-		b += Integer.toBinaryString(ipHeader.getTotalLength());
-		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
+		b += Long.toBinaryString(ipHeader.getTotalLength());
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 		
 		a = temp;
 		b = ipHeader.getTtl();
 		b += ipHeader.getProtocol();
-		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 		
 		a = temp;
 		b = addrToBinary(ipHeader.getSrcAddress());
-		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 		
 		a = temp;
 		b = addrToBinary(ipHeader.getDstAddress());
-		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
+		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 		
 		result = complement(temp);
 		return result;
@@ -169,18 +169,20 @@ public class OverlayClient {
 	
 	public static String complement(String comp){
 		String result = "";
-		String temp = comp;
+		char[] temp = comp.toCharArray();
 		char[] c = null;
 		
-		for(int i = 0; i < temp.length(); i++){
-			c[i] = temp.charAt(i);
-			if(c[i] == '0')
-				c[i] = '1';
+		// flip each bit
+		for(int i = 0; i < temp.length; i++){
+			if(temp[i] == '0')
+				temp[i] = '1';
 			else
-				c[i] = '0';
+				temp[i] = '0';
 		}
 		
-		result = c.toString();
+		System.out.println(comp);
+		result = new String(temp);
+		System.out.println(result);
 		return result;
 	}
 }
