@@ -2,3 +2,5 @@
 /OverlayClient.class
 /OverlayRouter.class
 /UDPHeader.class
+/OverlayClient$Read.class
+/OverlayClient$Write.class

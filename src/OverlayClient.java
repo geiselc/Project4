@@ -1,62 +1,92 @@
 import java.io.*;
 import java.net.*;
 
-
 public class OverlayClient {
+	private Read r;
+	private Write w;
 	
-	public static IPHeader ipHeader;
-	public static UDPHeader udpHeader;
+	public OverlayClient() {
+		r = new Read();
+		r.start();
+		w = new Write();
+		w.start();
+	}
 
-	/** TODO:
-	 * 	We need to convert this to contain a send and receive thread. The send portion is 
-	 *  just about done, just need to convert it to work as a thread. 
-	 *  Receive Thread needs to get a packet, and error check the checksum. 
-	 */
-	public static void main(String[] args) {
-		BufferedReader readIn = new BufferedReader(new InputStreamReader(System.in));
+	private class Write extends Thread {
+		private IPHeader ipHead;
+		private UDPHeader udpHead;
 		
-		String userIp;
-		String userMessage;
-		
-		ipHeader = new IPHeader();
-		udpHeader = new UDPHeader();
-		
-		try {
-			System.out.print("Enter IP address to send to: ");
-			userIp = readIn.readLine();
-		
-			System.out.print("Enter message to send: ");
-			userMessage = readIn.readLine();
-		    
-			buildPacket(userMessage, userIp);
-		} catch (IOException e) {
-			e.printStackTrace();
+		public Write() {
+			ipHead = new IPHeader();
+			udpHead = new UDPHeader();
 		}
 		
-	}
-	
-	/* Constructor for the packet to send to the OverlayRouter */
-	public static void buildPacket(String message, String dstIP){
-		try {
-			/** Build the IP Header */
-			ipHeader.setVersion("0100");	// this is always 4 since we are using ipv4 
-			ipHeader.setIhl("0101"); // I believe this is 5 bytes as far as I can tell, so storing it in an integer as 5. 
-			ipHeader.setTos("00000000");	// Not doing anything with this, so 0
-			ipHeader.setTotalLength((Integer.parseInt(ipHeader.getVersion(), 2) * Integer.parseInt(ipHeader.getIhl(), 2)) 
-					+ (message.getBytes().length * 8)); 	// If I'm understanding this right, total length is the header (20 bytes) + data (the message)
-			ipHeader.setTtl("00000110");	// Set as 6 since there are 6 nodes total on our overlay network, so I'm guessing at most there would be 6 hops...right? Will need to decrement this value in our router class
-			ipHeader.setProtocol("00010001");	// UDP - 17
+		public void run() {
 			
-			// TODO - Swap this to get the address of the node we are transmitting from, instead of local host. May need to parse the config file, or switch it to manual entry in main above
-			//        as we are doing with obtaining the dst address
-			ipHeader.setSrcAddress(InetAddress.getLocalHost().getHostAddress().toString());
-			ipHeader.setDstAddress(dstIP);
-			ipHeader.setCheckSum(ipCheckSum());
-			
-			/** Build the UDP Header */
-			udpHeader.setSrcPort("0010011010010100");	// 9876
-			udpHeader.setDstPort("0010011010010100");	// 9876
-			/* Need to get proper padded length of data */
+			BufferedReader readIn = new BufferedReader(new InputStreamReader(
+					System.in));
+
+			String userIp;
+			String userMessage;
+			while (true) {
+				try {
+					System.out.print("Enter IP address to send to: ");
+					userIp = readIn.readLine();
+
+					System.out.print("Enter message to send: ");
+					userMessage = readIn.readLine();
+
+					if (userIp.equals("quit") || userMessage.equals("quit")) {
+						readIn.close();
+						break;
+					}
+
+					buildPacket(userMessage, userIp);
+				} catch (IOException e) {
+					e.printStackTrace();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
+		
+		public void buildPacket(String message, String dstIP) {
+			try {
+				/** Build the IP Header */
+				ipHead.setVersion("0100"); // this is always 4 since we are using
+												// ipv4
+				ipHead.setIhl("0101"); // I believe this is 5 bytes as far as I
+											// can tell, so storing it in an integer
+											// as 5.
+				ipHead.setTos("00000000"); // Not doing anything with this, so 0
+				ipHead.setTotalLength((Integer.parseInt(ipHead.getVersion(), 2) * Integer
+						.parseInt(ipHead.getIhl(), 2))
+						+ (message.getBytes().length * 8)); // If I'm understanding
+															// this right, total
+															// length is the header
+															// (20 bytes) + data
+															// (the message)
+				ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
+												// total on our overlay network, so
+												// I'm guessing at most there would
+												// be 6 hops...right? Will need to
+												// decrement this value in our
+												// router class
+				ipHead.setProtocol("00010001"); // UDP - 17
+
+				// TODO - Swap this to get the address of the node we are
+				// transmitting from, instead of local host. May need to parse the
+				// config file, or switch it to manual entry in main above
+				// as we are doing with obtaining the dst address
+				ipHead.setSrcAddress(InetAddress.getLocalHost().getHostAddress()
+						.toString());
+				ipHead.setDstAddress(dstIP);
+				ipHead.setCheckSum(ipCheckSum());
+
+				/** Build the UDP Header */
+				udpHead.setSrcPort("0010011010010100"); // 9876
+				udpHead.setDstPort("0010011010010100"); // 9876
+				/* Need to get proper padded length of data */
 				String zero8 = "00000000";
 				String padString = "";
 				int messageLength = message.getBytes().length * 8;
@@ -65,147 +95,97 @@ public class OverlayClient {
 					padString = zero8;
 				}
 				int udpLength = 12 + 8 + messageLength + pad;
-			udpHeader.setLength(udpLength);
-			udpHeader.setCheckSum(udpCheckSum());
-			
-/** The old code is listed below: **/
-//			String zero8 = "00000000";
-//			String protocol = "00010001";
-//			String src = InetAddress.getLocalHost().toString();
-//			String dst = dstIP;
-//			String padString = "";
-//			
-//			/* src & dst ports */
-//			String port = "0010011010010100";
-//			int messageLength = message.getBytes().length * 8;
-//			int pad = messageLength % 2;
-//			
-//			if (pad == 1) {
-//				padString = zero8;
-//			}
-//			
-//			
-//			int udpLength = 12 + 8 + messageLength + pad;
-//			String udpCheckSum = "";
-//			String data = message;
-//			
-//			byte[] by = src.getBytes();
-//			
-//			StringBuilder binary = new StringBuilder();
-//			  for (byte b : by)
-//			  {
-//			     int val = b;
-//			     for (int i = 0; i < 8; i++)
-//			     {
-//			        binary.append((val & 128) == 0 ? 0 : 1);
-//			        val <<= 1;
-//			     }
-//			  }
-//			String srcBits = binary.toString();
-//			
-//			by = dst.getBytes();
-//			
-//			binary = new StringBuilder();
-//			  for (byte b : by)
-//			  {
-//			     int val = b;
-//			     for (int i = 0; i < 8; i++)
-//			     {
-//			        binary.append((val & 128) == 0 ? 0 : 1);
-//			        val <<= 1;
-//			     }
-//			  }
-//			String destBits = binary.toString();
-//			
-//			while(srcBits.length() < 32) {
-//				srcBits = "0" + srcBits;
-//			}
-//			
-//			while(destBits.length() < 32) {
-//				destBits = "0" + destBits;
-//			}
-			
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} 
-	}
-	
-	public static String ipCheckSum(){
-		String result = "";
-		String a = "", b = "";
-		String temp = "";
-		
-		a += ipHeader.getVersion();
-		a += ipHeader.getIhl();
-		a += ipHeader.getTos();
-		b += Long.toBinaryString(ipHeader.getTotalLength());
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		a = temp;
-		b = ipHeader.getTtl();
-		b += ipHeader.getProtocol();
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		a = temp;
-		b = addrToBinary(ipHeader.getSrcAddress());
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		a = temp;
-		b = addrToBinary(ipHeader.getDstAddress());
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		result = complement(temp);
-		return result;
-	}
-	
-	public static String udpCheckSum(){
-		String result = "";
-		String a ="", b = "";
-		String temp = "";
-		
-		a = addrToBinary(ipHeader.getSrcAddress());
-		b = addrToBinary(ipHeader.getDstAddress());
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		a = temp;
-		b = ipHeader.getProtocol();	// UDP Protocol - 17
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		a = temp;
-		b = Long.toBinaryString(udpHeader.getLength());
-		temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-		
-		result = complement(temp);
-		return result;
-	}
-	
-	public static String addrToBinary(String addr){
-		String addrBits = "";
-		String[] temp = addr.split("\\.");
-	    int j;
-		for(int i = 0; i < 4; i++){
-			j = Integer.parseInt(temp[i]);
-			temp[i] = ("00000000" + Integer.toBinaryString(j)).substring(Integer.toBinaryString(j).length());
-			addrBits += temp[i];
+				udpHead.setLength(udpLength);
+				udpHead.setCheckSum(udpCheckSum());
+
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
 		}
-		
-		return addrBits;
-	}
-	
-	public static String complement(String comp){
-		String result = "";
-		char[] temp = comp.toCharArray();
-		char[] c = null;
-		
-		// flip each bit
-		for(int i = 0; i < temp.length; i++){
-			if(temp[i] == '0')
-				temp[i] = '1';
-			else
-				temp[i] = '0';
+		public  String ipCheckSum() {
+			String result = "";
+			String a = "", b = "";
+			String temp = "";
+
+			a += ipHead.getVersion();
+			a += ipHead.getIhl();
+			a += ipHead.getTos();
+			b += Long.toBinaryString(ipHead.getTotalLength());
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			a = temp;
+			b = ipHead.getTtl();
+			b += ipHead.getProtocol();
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			a = temp;
+			b = addrToBinary(ipHead.getSrcAddress());
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			a = temp;
+			b = addrToBinary(ipHead.getDstAddress());
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			result = complement(temp);
+			return result;
 		}
-		
-		result = new String(temp);
-		return result;
+
+		public  String udpCheckSum() {
+			String result = "";
+			String a = "", b = "";
+			String temp = "";
+
+			a = addrToBinary(ipHead.getSrcAddress());
+			b = addrToBinary(ipHead.getDstAddress());
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			a = temp;
+			b = ipHead.getProtocol(); // UDP Protocol - 17
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			a = temp;
+			b = Long.toBinaryString(udpHead.getLength());
+			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
+
+			result = complement(temp);
+			return result;
+		}
+
+		public String addrToBinary(String addr) {
+			String addrBits = "";
+			String[] temp = addr.split("\\.");
+			int j;
+			for (int i = 0; i < 4; i++) {
+				j = Integer.parseInt(temp[i]);
+				temp[i] = ("00000000" + Integer.toBinaryString(j))
+						.substring(Integer.toBinaryString(j).length());
+				addrBits += temp[i];
+			}
+
+			return addrBits;
+		}
+
+		public  String complement(String comp) {
+			String result = "";
+			char[] temp = comp.toCharArray();
+			char[] c = null;
+
+			// flip each bit
+			for (int i = 0; i < temp.length; i++) {
+				if (temp[i] == '0')
+					temp[i] = '1';
+				else
+					temp[i] = '0';
+			}
+
+			result = new String(temp);
+			return result;
+		}
+	}
+
+	private class Read extends Thread {
+		public void run() {
+
+		}
 	}
 }
