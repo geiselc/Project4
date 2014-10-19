@@ -144,9 +144,9 @@ public class OverlayClient {
 			ipHead.setCheckSum(ipCheckSum());
 			
 			// TODO
-			ipHead.setIden();
-			ipHead.setFlags();
-			ipHead.setOffset();
+			ipHead.setIden("0000000000000000");
+			ipHead.setFlags("000");
+			ipHead.setOffset("0000000000000");
 
 			/** Build the UDP Header */
 			udpHead.setSrcPort("0010011010010100"); // 9876
