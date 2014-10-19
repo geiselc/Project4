@@ -42,8 +42,7 @@ public class OverlayClient {
 					+ (message.getBytes().length * 8)); 	// If I'm understanding this right, total length is the header (20 bytes) + data (the message)
 			ipHeader.setTtl("00000110");	// Set as 6 since there are 6 nodes total on our overlay network, so I'm guessing at most there would be 6 hops...right? Will need to decrement this value in our router class
 			ipHeader.setProtocol("00010001");	// UDP - 17
-			//checksum - will be calculated a bit later 
-			ipHeader.setSrcAddress(InetAddress.getLocalHost().toString());
+			ipHeader.setSrcAddress(InetAddress.getLocalHost().getHostAddress().toString());
 			ipHeader.setDstAddress(dstIP);
 			ipHeader.setCheckSum(ipCheckSum());
 			
@@ -152,29 +151,19 @@ public class OverlayClient {
 		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
 		
 		result = temp;
-		System.out.println(result);
 		return result;
 	}
 	
 	public static String addrToBinary(String addr){
-		byte[] by = addr.getBytes();
-		
-		StringBuilder binary = new StringBuilder();
-		  for (byte b : by)
-		  {
-		     int val = b;
-		     for (int i = 0; i < 8; i++)
-		     {
-		        binary.append((val & 128) == 0 ? 0 : 1);
-		        val <<= 1;
-		     }
-		  }
-		String addrBits = binary.toString();
-		
-		while(addrBits.length() < 32) {
-			addrBits = "0" + addrBits;
+		String addrBits = "";
+		String[] temp = addr.split("\\.");
+	    int j;
+		for(int i = 0; i < 4; i++){
+			j = Integer.parseInt(temp[i]);
+			temp[i] = ("00000000" + Integer.toBinaryString(j)).substring(Integer.toBinaryString(j).length());
+			addrBits += temp[i];
 		}
-
+		
 		return addrBits;
 	}
 }
