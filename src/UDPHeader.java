@@ -19,6 +19,11 @@ public class UDPHeader {
 		this.data = data;
 	}
 	
+	public byte[] getMessageData() {
+		String toBytes = srcPort + dstPort + length + checkSum + data;
+		return toBytes.getBytes();
+	}
+	
 	public String getSrcPort(){
 		return srcPort;
 	}

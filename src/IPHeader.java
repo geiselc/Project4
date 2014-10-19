@@ -10,13 +10,18 @@ public class IPHeader {
 	protected String checkSum;
 	protected String srcAddress;
 	protected String dstAddress;
+	protected String iden;
+	protected String flags;
+	protected String offset;
 	
 	public IPHeader(){
 		
 	}
 	
-	public IPHeader(String version, String ihl, String tos, int totalLength, String ttl, String protocol, 
-			String checkSum, String srcAddress, String dstAddress){
+	public IPHeader(String version, String ihl, String tos, int totalLength,
+			String ttl, String protocol, String checkSum, String srcAddress,
+			String dstAddress, String iden, String flags, String offset) {
+		super();
 		this.version = version;
 		this.ihl = ihl;
 		this.tos = tos;
@@ -26,6 +31,16 @@ public class IPHeader {
 		this.checkSum = checkSum;
 		this.srcAddress = srcAddress;
 		this.dstAddress = dstAddress;
+		this.iden = iden;
+		this.flags = flags;
+		this.offset = offset;
+	}
+
+	public byte[] getMessageData() {
+		String toBytes = version + ihl + tos + totalLength;
+		toBytes += iden + flags + offset;
+		toBytes += ttl + protocol + checkSum + srcAddress + dstAddress;
+		return toBytes.getBytes();
 	}
 	
 	public String getVersion(){
@@ -99,4 +114,30 @@ public class IPHeader {
 	public void setDstAddress(String dstAddress){
 		this.dstAddress = dstAddress;
 	}
+
+	public String getIden() {
+		return iden;
+	}
+
+	public void setIden(String iden) {
+		this.iden = iden;
+	}
+
+	public String getFlags() {
+		return flags;
+	}
+
+	public void setFlags(String flags) {
+		this.flags = flags;
+	}
+
+	public String getOffset() {
+		return offset;
+	}
+
+	public void setOffset(String offset) {
+		this.offset = offset;
+	}
+	
+	
 }

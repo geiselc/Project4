@@ -4,12 +4,56 @@ import java.net.*;
 public class OverlayClient {
 	private Read r;
 	private Write w;
+	private String ip;
+	private String pre;
+	private static String file = "host-10A.txt";
+	private DatagramSocket clientSocket;
+	private int port = 9876;
 	
-	public OverlayClient() {
+	public static void main(String[] args) {
+		new OverlayClient(args[0]);
+	}
+	
+	public OverlayClient(String number) {
+		
+		// read in from correct configuration file
+		file = file.replaceAll("A", number);
+		String line;
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			line = br.readLine();
+			String[] parts = line.split(" ");
+			ip = parts[0];
+			
+			line = br.readLine();
+			parts = line.split(" ");
+			pre = parts[2];
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			clientSocket = new DatagramSocket();
+		} catch (IOException e) {
+			e.printStackTrace();
+			clientSocket.close();
+			return;
+		}
+		
+		// start threads
 		r = new Read();
 		r.start();
 		w = new Write();
 		w.start();
+		while (true) {
+			if(r.isAlive() || w.isAlive()) {
+				
+			} else {
+				clientSocket.close();
+				break;
+			}
+		}
 	}
 
 	private class Write extends Thread {
@@ -42,6 +86,8 @@ public class OverlayClient {
 					}
 
 					buildPacket(userMessage, userIp);
+					
+					sendPacket();
 				} catch (IOException e) {
 					e.printStackTrace();
 				} catch (Exception e1) {
@@ -50,57 +96,72 @@ public class OverlayClient {
 			}
 		}
 		
-		public void buildPacket(String message, String dstIP) {
+		public void sendPacket() {
+			// TODO: i don't know if it goes UDP header over IP header
+			// of it is the other way;
+			byte[] send1 = "";
+			byte[] send2 = "";
+			byte[] sendData = new byte[send1.length+send2.length];
+			for(int i = 0; i < send1.length; i++) {
+				sendData[i] = send1[i];
+			}
+			for(int i = 0; i < send2.length; i++) {
+				sendData[i] = send2[i];
+			}
 			try {
-				/** Build the IP Header */
-				ipHead.setVersion("0100"); // this is always 4 since we are using
-												// ipv4
-				ipHead.setIhl("0101"); // I believe this is 5 bytes as far as I
-											// can tell, so storing it in an integer
-											// as 5.
-				ipHead.setTos("00000000"); // Not doing anything with this, so 0
-				ipHead.setTotalLength((Integer.parseInt(ipHead.getVersion(), 2) * Integer
-						.parseInt(ipHead.getIhl(), 2))
-						+ (message.getBytes().length * 8)); // If I'm understanding
-															// this right, total
-															// length is the header
-															// (20 bytes) + data
-															// (the message)
-				ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
-												// total on our overlay network, so
-												// I'm guessing at most there would
-												// be 6 hops...right? Will need to
-												// decrement this value in our
-												// router class
-				ipHead.setProtocol("00010001"); // UDP - 17
-
-				// TODO - Swap this to get the address of the node we are
-				// transmitting from, instead of local host. May need to parse the
-				// config file, or switch it to manual entry in main above
-				// as we are doing with obtaining the dst address
-				ipHead.setSrcAddress(InetAddress.getLocalHost().getHostAddress()
-						.toString());
-				ipHead.setDstAddress(dstIP);
-				ipHead.setCheckSum(ipCheckSum());
-
-				/** Build the UDP Header */
-				udpHead.setSrcPort("0010011010010100"); // 9876
-				udpHead.setDstPort("0010011010010100"); // 9876
-				/* Need to get proper padded length of data */
-				String zero8 = "00000000";
-				String padString = "";
-				int messageLength = message.getBytes().length * 8;
-				int pad = messageLength % 2;
-				if (pad == 1) {
-					padString = zero8;
-				}
-				int udpLength = 12 + 8 + messageLength + pad;
-				udpHead.setLength(udpLength);
-				udpHead.setCheckSum(udpCheckSum());
-
-			} catch (UnknownHostException e) {
+				DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,InetAddress.getByName(pre),port);
+				clientSocket.send(sendPacket);
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		public void buildPacket(String message, String dstIP) {
+			/** Build the IP Header */
+			ipHead.setVersion("0100"); // this is always 4 since we are using
+											// ipv4
+			ipHead.setIhl("0101"); // I believe this is 5 bytes as far as I
+										// can tell, so storing it in an integer
+										// as 5.
+			ipHead.setTos("00000000"); // Not doing anything with this, so 0
+			ipHead.setTotalLength((Integer.parseInt(ipHead.getVersion(), 2) * Integer
+					.parseInt(ipHead.getIhl(), 2))
+					+ (message.getBytes().length * 8)); // If I'm understanding
+														// this right, total
+														// length is the header
+														// (20 bytes) + data
+														// (the message)
+			ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
+											// total on our overlay network, so
+											// I'm guessing at most there would
+											// be 6 hops...right? Will need to
+											// decrement this value in our
+											// router class
+			ipHead.setProtocol("00010001"); // UDP - 17
+
+			ipHead.setSrcAddress(ip);
+			ipHead.setDstAddress(dstIP);
+			ipHead.setCheckSum(ipCheckSum());
+			
+			// TODO
+			ipHead.setIden();
+			ipHead.setFlags();
+			ipHead.setOffset();
+
+			/** Build the UDP Header */
+			udpHead.setSrcPort("0010011010010100"); // 9876
+			udpHead.setDstPort("0010011010010100"); // 9876
+			/* Need to get proper padded length of data */
+			String zero8 = "00000000";
+			String padString = "";
+			int messageLength = message.getBytes().length * 8;
+			int pad = messageLength % 2;
+			if (pad == 1) {
+				padString = zero8;
+			}
+			int udpLength = 12 + 8 + messageLength + pad;
+			udpHead.setLength(udpLength);
+			udpHead.setCheckSum(udpCheckSum());
 		}
 		public  String ipCheckSum() {
 			String result = "";
