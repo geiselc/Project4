@@ -150,7 +150,7 @@ public class OverlayClient {
 		b = addrToBinary(ipHeader.getDstAddress());
 		temp = Integer.toBinaryString(Integer.parseInt(a, 2) + Integer.parseInt(b, 2));
 		
-		result = temp;
+		result = complement(temp);
 		return result;
 	}
 	
@@ -165,5 +165,22 @@ public class OverlayClient {
 		}
 		
 		return addrBits;
+	}
+	
+	public static String complement(String comp){
+		String result = "";
+		String temp = comp;
+		char[] c = null;
+		
+		for(int i = 0; i < temp.length(); i++){
+			c[i] = temp.charAt(i);
+			if(c[i] == '0')
+				c[i] = '1';
+			else
+				c[i] = '0';
+		}
+		
+		result = c.toString();
+		return result;
 	}
 }
