@@ -141,7 +141,7 @@ public class OverlayClient {
 
 			ipHead.setSrcAddress(ip);
 			ipHead.setDstAddress(dstIP);
-			ipHead.setCheckSum(ipCheckSum());
+			
 			
 			// TODO
 			ipHead.setIden("0000000000000000");
@@ -165,6 +165,8 @@ public class OverlayClient {
 			
 			//TODO Verify this is correct
 			ipHead.setTotalLength(udpLength + 20);
+			
+			ipHead.setCheckSum(ipCheckSum());
 		}
 		public  String ipCheckSum() {
 			String result = "";
