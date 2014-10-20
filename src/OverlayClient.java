@@ -23,7 +23,7 @@ public class OverlayClient {
 			BufferedReader br = new BufferedReader(new FileReader(file));
 			line = br.readLine();
 			String[] parts = line.split(" ");
-			ip = parts[0];
+			ip = parts[1];
 			
 			line = br.readLine();
 			parts = line.split(" ");
@@ -105,7 +105,7 @@ public class OverlayClient {
 			for(int i = 0; i < send1.length; i++) {
 				sendData[i] = send1[i];
 			}
-			for(int i = 0; i < send2.length; i++) {
+			for(int i = send1.length; i < send2.length; i++) {
 				sendData[i] = send2[i];
 			}
 			try {
@@ -131,22 +131,24 @@ public class OverlayClient {
 														// length is the header
 														// (20 bytes) + data
 														// (the message)
-			ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
+			//ipHead.setTotalLength("0000000000000000");
+			
+			ipHead.setIden("0000000000000000");
+			ipHead.setFlags("000");
+			ipHead.setOffset("0000000000000");
+			//ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
 											// total on our overlay network, so
 											// I'm guessing at most there would
 											// be 6 hops...right? Will need to
 											// decrement this value in our
 											// router class
+			ipHead.setTtl("00000001");
 			ipHead.setProtocol("00010001"); // UDP - 17
+			
+			ipHead.setCheckSum("00000000000000000000000000000000");
 
 			ipHead.setSrcAddress(ip);
 			ipHead.setDstAddress(dstIP);
-			
-			
-			// TODO
-			ipHead.setIden("0000000000000000");
-			ipHead.setFlags("000");
-			ipHead.setOffset("0000000000000");
 
 			/** Build the UDP Header */
 			udpHead.setSrcPort("0010011010010100"); // 9876
@@ -154,17 +156,23 @@ public class OverlayClient {
 			/* Need to get proper padded length of data */
 			String zero8 = "00000000";
 			String padString = "";
-			int messageLength = message.getBytes().length * 8;
+			int messageLength = message.getBytes().length;
 			int pad = messageLength % 2;
 			if (pad == 1) {
 				padString = zero8;
+				message += padString;
 			}
-			int udpLength = 12 + 8 + messageLength + pad;
+			String udpLength = Integer.toBinaryString(12 + 8 + messageLength + pad);
+			System.out.println(messageLength);
+			System.out.println(udpLength);
 			udpHead.setLength(udpLength);
+			System.out.println(udpHead.getLength());
 			udpHead.setCheckSum(udpCheckSum());
+			udpHead.setData(message);
 			
 			//TODO Verify this is correct
-			ipHead.setTotalLength(udpLength + 20);
+			String twenty = "00010100";
+			ipHead.setTotalLength(Long.toBinaryString(Long.parseLong(udpLength,2) + Long.parseLong(twenty, 2)));
 			
 			ipHead.setCheckSum(ipCheckSum());
 		}
@@ -176,7 +184,7 @@ public class OverlayClient {
 			a += ipHead.getVersion();
 			a += ipHead.getIhl();
 			a += ipHead.getTos();
-			b += Long.toBinaryString(ipHead.getTotalLength());
+			b += ipHead.getTotalLength();
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			a = temp;
@@ -210,7 +218,7 @@ public class OverlayClient {
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			a = temp;
-			b = Long.toBinaryString(udpHead.getLength());
+			b = udpHead.getLength();
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			result = complement(temp);

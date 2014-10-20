@@ -3,7 +3,7 @@ public class IPHeader {
 	protected String version;
 	protected String ihl;
 	protected String tos;
-	protected int totalLength;
+	protected String totalLength;
 	//skipping id, flags, and frag-offset fields since we don't need to do fragmentation for this project
 	protected String ttl;
 	protected String protocol;
@@ -18,7 +18,7 @@ public class IPHeader {
 		
 	}
 	
-	public IPHeader(String version, String ihl, String tos, int totalLength,
+	public IPHeader(String version, String ihl, String tos, String totalLength,
 			String ttl, String protocol, String checkSum, String srcAddress,
 			String dstAddress, String iden, String flags, String offset) {
 		super();
@@ -40,6 +40,14 @@ public class IPHeader {
 		String toBytes = version + ihl + tos + totalLength;
 		toBytes += iden + flags + offset;
 		toBytes += ttl + protocol + checkSum + srcAddress + dstAddress;
+		
+		for(int i = 0; i < toBytes.length(); i++){
+			System.out.print(toBytes.charAt(i));
+			if((i+1) % 8 == 0){
+				System.out.println("");
+			}
+		}
+		
 		return toBytes.getBytes();
 	}
 	
@@ -67,11 +75,11 @@ public class IPHeader {
 		this.tos = tos;
 	}
 	
-	public int getTotalLength(){
+	public String getTotalLength(){
 		return this.totalLength;
 	}
 	
-	public void setTotalLength(int totalLength){
+	public void setTotalLength(String totalLength){
 		this.totalLength = totalLength;
 	}
 	

@@ -3,7 +3,7 @@ public class UDPHeader {
 	
 	protected String srcPort;
 	protected String dstPort;
-	protected int length;
+	protected String length;
 	protected String checkSum;
 	protected String data;
 	
@@ -11,7 +11,7 @@ public class UDPHeader {
 		
 	}
 	
-	public UDPHeader(String srcPort, String dstPort, int length, String checkSum, String data){
+	public UDPHeader(String srcPort, String dstPort, String length, String checkSum, String data){
 		this.srcPort = srcPort;
 		this.dstPort = dstPort;
 		this.length = length;
@@ -40,11 +40,11 @@ public class UDPHeader {
 		this.dstPort = dstPort;
 	}
 	
-	public int getLength(){
+	public String getLength(){
 		return length;
 	}
 	
-	public void setLength(int length){
+	public void setLength(String length){
 		this.length = length;
 	}
 	
