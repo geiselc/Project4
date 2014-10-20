@@ -99,8 +99,8 @@ public class OverlayClient {
 		public void sendPacket() {
 			// TODO: i don't know if it goes UDP header over IP header
 			// of it is the other way;
-			byte[] send1 = null;
-			byte[] send2 = null;
+			byte[] send1 = "";
+			byte[] send2 = "";
 			byte[] sendData = new byte[send1.length+send2.length];
 			for(int i = 0; i < send1.length; i++) {
 				sendData[i] = send1[i];
