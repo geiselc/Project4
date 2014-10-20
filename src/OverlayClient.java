@@ -108,6 +108,12 @@ public class OverlayClient {
 			for(int i = send1.length; i < send2.length; i++) {
 				sendData[i] = send2[i];
 			}
+			
+			int j = send1.length;
+			for (int i = 0; i < send2.length; i++, j++) {
+				sendData[j] = send2[i];
+			}
+			
 			try {
 				DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,InetAddress.getByName(pre),port);
 				clientSocket.send(sendPacket);
@@ -134,8 +140,8 @@ public class OverlayClient {
 			//ipHead.setTotalLength("0000000000000000");
 			
 			ipHead.setIden("0000000000000000");
-			ipHead.setFlags("000");
-			ipHead.setOffset("0000000000000");
+			ipHead.setFlags("0000");
+			ipHead.setOffset("000000000000");
 			//ipHead.setTtl("00000110"); // Set as 6 since there are 6 nodes
 											// total on our overlay network, so
 											// I'm guessing at most there would
@@ -145,10 +151,10 @@ public class OverlayClient {
 			ipHead.setTtl("00000001");
 			ipHead.setProtocol("00010001"); // UDP - 17
 			
-			ipHead.setCheckSum("00000000000000000000000000000000");
+			ipHead.setCheckSum("0000000000000000");
 
-			ipHead.setSrcAddress(ip);
-			ipHead.setDstAddress(dstIP);
+			ipHead.setSrcAddress(ipToBits(ip));
+			ipHead.setDstAddress(ipToBits(dstIP));
 
 			/** Build the UDP Header */
 			udpHead.setSrcPort("0010011010010100"); // 9876
@@ -163,18 +169,19 @@ public class OverlayClient {
 				message += padString;
 			}
 			String udpLength = Integer.toBinaryString(12 + 8 + messageLength + pad);
-			System.out.println(messageLength);
-			System.out.println(udpLength);
 			udpHead.setLength(udpLength);
-			System.out.println(udpHead.getLength());
 			udpHead.setCheckSum(udpCheckSum());
 			udpHead.setData(message);
 			
 			//TODO Verify this is correct
 			String twenty = "00010100";
-			ipHead.setTotalLength(Long.toBinaryString(Long.parseLong(udpLength,2) + Long.parseLong(twenty, 2)));
+			String temp = Long.toBinaryString(Long.parseLong(udpLength,2) + Long.parseLong(twenty, 2));
+			while(temp.length() < 16) {
+				temp = "0" + temp;
+			}
+			ipHead.setTotalLength(temp);
 			
-			ipHead.setCheckSum(ipCheckSum());
+			ipHead.setCheckSum("0000000000000000");
 		}
 		public  String ipCheckSum() {
 			String result = "";
@@ -193,11 +200,11 @@ public class OverlayClient {
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			a = temp;
-			b = addrToBinary(ipHead.getSrcAddress());
+			b = ipHead.getSrcAddress();
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			a = temp;
-			b = addrToBinary(ipHead.getDstAddress());
+			b = ipHead.getDstAddress();
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			result = complement(temp);
@@ -209,8 +216,9 @@ public class OverlayClient {
 			String a = "", b = "";
 			String temp = "";
 
-			a = addrToBinary(ipHead.getSrcAddress());
-			b = addrToBinary(ipHead.getDstAddress());
+			a = ipHead.getSrcAddress();
+			b = ipHead.getDstAddress();
+			
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			a = temp;
@@ -225,19 +233,6 @@ public class OverlayClient {
 			return result;
 		}
 
-		public String addrToBinary(String addr) {
-			String addrBits = "";
-			String[] temp = addr.split("\\.");
-			int j;
-			for (int i = 0; i < 4; i++) {
-				j = Integer.parseInt(temp[i]);
-				temp[i] = ("00000000" + Integer.toBinaryString(j))
-						.substring(Integer.toBinaryString(j).length());
-				addrBits += temp[i];
-			}
-
-			return addrBits;
-		}
 
 		public  String complement(String comp) {
 			String result = "";
@@ -254,6 +249,22 @@ public class OverlayClient {
 
 			result = new String(temp);
 			return result;
+		}
+		
+		public String ipToBits(String ipA) {
+			String[] parts = ipA.split("\\.");
+			String temp = "";
+			
+			for(int i = 0; i < parts.length; i++) {
+				String current = parts[i];
+				current = Integer.toBinaryString(Integer.parseInt(current));
+				while(current.length() < 8) {
+					current = "0" + current;
+				}
+				temp += current;
+			}
+			
+			return temp;
 		}
 	}
 

@@ -1,3 +1,5 @@
+import java.nio.ByteBuffer;
+
 
 public class IPHeader {
 	protected String version;
@@ -13,6 +15,7 @@ public class IPHeader {
 	protected String iden;
 	protected String flags;
 	protected String offset;
+	protected String options;
 	
 	public IPHeader(){
 		
@@ -20,7 +23,7 @@ public class IPHeader {
 	
 	public IPHeader(String version, String ihl, String tos, String totalLength,
 			String ttl, String protocol, String checkSum, String srcAddress,
-			String dstAddress, String iden, String flags, String offset) {
+			String dstAddress, String iden, String flags, String offset, String options) {
 		super();
 		this.version = version;
 		this.ihl = ihl;
@@ -34,21 +37,31 @@ public class IPHeader {
 		this.iden = iden;
 		this.flags = flags;
 		this.offset = offset;
+		this.options = options;
 	}
 
 	public byte[] getMessageData() {
 		String toBytes = version + ihl + tos + totalLength;
 		toBytes += iden + flags + offset;
-		toBytes += ttl + protocol + checkSum + srcAddress + dstAddress;
+		toBytes += ttl + protocol + checkSum + srcAddress + dstAddress;		
+		
+		byte[] toSend = new byte[20];
+		
+		String temp = "";
+		int count = 0;
 		
 		for(int i = 0; i < toBytes.length(); i++){
-			System.out.print(toBytes.charAt(i));
+			temp += ""+ toBytes.charAt(i);
 			if((i+1) % 8 == 0){
-				System.out.println("");
+				toSend[count++] = (byte)Integer.parseInt(temp,2);
+				temp = "";
 			}
 		}
-		
-		return toBytes.getBytes();
+		return toSend;
+	}
+	
+	private void printL(String x) {
+		System.out.println(x.length() + "");
 	}
 	
 	public String getVersion(){
@@ -146,6 +159,13 @@ public class IPHeader {
 	public void setOffset(String offset) {
 		this.offset = offset;
 	}
-	
+
+	public String getOptions() {
+		return options;
+	}
+
+	public void setOptions(String options) {
+		this.options = options;
+	}
 	
 }

@@ -20,8 +20,32 @@ public class UDPHeader {
 	}
 	
 	public byte[] getMessageData() {
-		String toBytes = srcPort + dstPort + length + checkSum + data;
-		return toBytes.getBytes();
+		String toBytes = srcPort + dstPort + length + checkSum;
+		
+		
+		byte[] toSend = new byte[toBytes.length() / 8];
+		
+		String temp = "";
+		int count = 0;
+		
+		for(int i = 0; i < toBytes.length(); i++){
+			temp += ""+ toBytes.charAt(i);
+			if((i+1) % 8 == 0){
+				toSend[count++] = (byte)Integer.parseInt(temp,2);
+				temp = "";
+			}
+		}
+		
+		byte[] otherData = data.getBytes();
+		byte[] fin = new byte[toSend.length + otherData.length];
+		for (int i = 0; i < toSend.length; i++) {
+			fin[i] = toSend[i];
+		}
+		int j = toSend.length;
+		for (int i = 0; i < toSend.length; i++, j++) {
+			fin[j] = toSend[i];
+		}
+		return fin;
 	}
 	
 	public String getSrcPort(){
