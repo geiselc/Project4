@@ -124,9 +124,9 @@ public class OverlayClient {
 										// can tell, so storing it in an integer
 										// as 5.
 			ipHead.setTos("00000000"); // Not doing anything with this, so 0
-			ipHead.setTotalLength((Integer.parseInt(ipHead.getVersion(), 2) * Integer
-					.parseInt(ipHead.getIhl(), 2))
-					+ (message.getBytes().length * 8)); // If I'm understanding
+//			ipHead.setTotalLength((Integer.parseInt(ipHead.getVersion(), 2) * Integer
+//					.parseInt(ipHead.getIhl(), 2))
+//					+ (message.getBytes().length * 8)); // If I'm understanding
 														// this right, total
 														// length is the header
 														// (20 bytes) + data
@@ -162,6 +162,9 @@ public class OverlayClient {
 			int udpLength = 12 + 8 + messageLength + pad;
 			udpHead.setLength(udpLength);
 			udpHead.setCheckSum(udpCheckSum());
+			
+			//TODO Verify this is correct
+			ipHead.setTotalLength(udpLength + 20);
 		}
 		public  String ipCheckSum() {
 			String result = "";
