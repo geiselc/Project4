@@ -42,10 +42,14 @@ public class UDPHeader {
 			fin[i] = toSend[i];
 		}
 		int j = toSend.length;
-		for (int i = 0; i < toSend.length; i++, j++) {
-			fin[j] = toSend[i];
+		for (int i = 0; i < otherData.length; i++) {
+			fin[j++] = otherData[i];
 		}
 		return fin;
+	}
+	
+	public byte[] getCheckSumData() {
+		return null;
 	}
 	
 	public String getSrcPort(){

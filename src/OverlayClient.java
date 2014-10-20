@@ -75,10 +75,10 @@ public class OverlayClient {
 			while (true) {
 				try {
 					System.out.print("Enter IP address to send to: ");
-					userIp = readIn.readLine();
+					userIp = readIn.readLine().trim();
 
 					System.out.print("Enter message to send: ");
-					userMessage = readIn.readLine();
+					userMessage = readIn.readLine().trim();
 
 					if (userIp.equals("quit") || userMessage.equals("quit")) {
 						readIn.close();
@@ -102,16 +102,12 @@ public class OverlayClient {
 			byte[] send1 = ipHead.getMessageData();
 			byte[] send2 = udpHead.getMessageData();
 			byte[] sendData = new byte[send1.length+send2.length];
+			int count = 0;
 			for(int i = 0; i < send1.length; i++) {
-				sendData[i] = send1[i];
+				sendData[count++] = send1[i];
 			}
-			for(int i = send1.length; i < send2.length; i++) {
-				sendData[i] = send2[i];
-			}
-			
-			int j = send1.length;
-			for (int i = 0; i < send2.length; i++, j++) {
-				sendData[j] = send2[i];
+			for (int i = 0; i < send2.length; i++) {
+				sendData[count++] = send2[i];
 			}
 			
 			try {
@@ -151,7 +147,6 @@ public class OverlayClient {
 			ipHead.setTtl("00000001");
 			ipHead.setProtocol("00010001"); // UDP - 17
 			
-			ipHead.setCheckSum("0000000000000000");
 
 			ipHead.setSrcAddress(ipToBits(ip));
 			ipHead.setDstAddress(ipToBits(dstIP));
@@ -163,14 +158,17 @@ public class OverlayClient {
 			String zero8 = "00000000";
 			String padString = "";
 			int messageLength = message.getBytes().length;
+			/*
 			int pad = messageLength % 2;
 			if (pad == 1) {
 				padString = zero8;
 				message += padString;
+			}  */
+			String udpLength = Integer.toBinaryString(messageLength + 8);
+			while(udpLength.length() < 16) {
+				udpLength = "0" + udpLength;
 			}
-			String udpLength = Integer.toBinaryString(12 + 8 + messageLength + pad);
 			udpHead.setLength(udpLength);
-			udpHead.setCheckSum(udpCheckSum());
 			udpHead.setData(message);
 			
 			//TODO Verify this is correct
@@ -181,37 +179,27 @@ public class OverlayClient {
 			}
 			ipHead.setTotalLength(temp);
 			
-			ipHead.setCheckSum("0000000000000000");
+			ipHead.setCheckSum(ipCheckSum());
+			udpHead.setCheckSum(udpCheckSum());
 		}
 		public  String ipCheckSum() {
-			String result = "";
-			String a = "", b = "";
-			String temp = "";
+			byte[] buf = ipHead.getCheckData();
+			int length = buf.length;
+		    int i = 0;
+		    long sum = 0;
+		    while (length > 0) {
+		        sum += (buf[i++]&0xff) << 8;
+		        if ((--length)==0) break;
+		        sum += (buf[i++]&0xff);
+		        --length;
+		    }
 
-			a += ipHead.getVersion();
-			a += ipHead.getIhl();
-			a += ipHead.getTos();
-			b += ipHead.getTotalLength();
-			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-
-			a = temp;
-			b = ipHead.getTtl();
-			b += ipHead.getProtocol();
-			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-
-			a = temp;
-			b = ipHead.getSrcAddress();
-			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-
-			a = temp;
-			b = ipHead.getDstAddress();
-			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
-
-			result = complement(temp);
-			return result;
+		    long x = (~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF;
+		    return Long.toBinaryString(x);
 		}
 
 		public  String udpCheckSum() {
+			/*
 			String result = "";
 			String a = "", b = "";
 			String temp = "";
@@ -230,7 +218,109 @@ public class OverlayClient {
 			temp = Long.toBinaryString(Long.parseLong(a, 2) + Long.parseLong(b, 2));
 
 			result = complement(temp);
-			return result;
+			
+			while(result.length() < 16) {
+				result = "0" + result;
+			} */
+			/*
+			String temp = ipHead.getSrcAddress() + ipHead.getDstAddress();
+			String temp2 = ipHead.getProtocol();
+			while(temp2.length() < 16) {
+				temp2 = "0" + temp2;
+			}
+			temp += temp2 + udpHead.getLength();
+			
+			byte[] data = new byte[temp.length() / 8];
+			
+			String t = "";
+			int count = 0;
+			
+			for(int i = 0; i < temp.length(); i++){
+				t += ""+ temp.charAt(i);
+				if((i+1) % 8 == 0){
+					data[count++] = (byte)Integer.parseInt(t,2);
+					t = "";
+				}
+			}
+			
+			byte[] buf = data;
+			int length = data.length;
+		    int i = 0;
+		    long sum = 0;
+		    while (length > 0) {
+		        sum += (buf[i++]&0xff) << 8;
+		        if ((--length)==0) break;
+		        sum += (buf[i++]&0xff);
+		        --length;
+		    }
+
+		    long x = (~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF;
+		    return Long.toBinaryString(x);
+		    */
+			return udpC();
+		}
+		
+		public String udpC() {
+			String one = "0"+ipHead.getSrcAddress().substring(0,16);
+			String two = "0"+ipHead.getSrcAddress().substring(16);
+			String three = "0"+ipHead.getDstAddress().substring(0,16);
+			String four ="0"+ ipHead.getDstAddress().substring(16);
+			String five = "0"+"00000000"+ipHead.protocol;
+			String six = "0"+ ipHead.totalLength;
+			
+			int a = Integer.parseInt(one, 2);
+			int b = Integer.parseInt(two, 2);
+			int c = Integer.parseInt(three, 2);
+			int d = Integer.parseInt(four, 2);
+			int e = Integer.parseInt(five, 2);
+			int f = Integer.parseInt(six, 2);
+			
+			int z = a + b + c + d + e + f;
+			String total = Integer.toBinaryString(z);
+			total = complement(total);
+			
+			a = Integer.parseInt(total,2);
+			b = Integer.parseInt(udpHead.getSrcPort(),2);
+			c = Integer.parseInt(udpHead.getDstPort(),2);
+			d = Integer.parseInt(udpHead.getLength(),2);
+			
+			z = a + b + c + d;
+			
+			/*
+			String data = udpHead.getData();
+			byte[] bytes = data.getBytes();
+			
+			String bits = "";
+			for (int i = 0; i < bytes.length; i++) {
+				byte current = bytes[i];
+				
+			}
+			*/
+			
+			byte[] first = Integer.toBinaryString(z).getBytes();
+			byte[] second = udpHead.getData().getBytes();
+			byte[] full = new byte[first.length + second.length];
+			int count = 0;
+			for(int i = 0; i < first.length; i++) {
+				full[count++] = first[i];
+			}
+			for(int i = 0; i < second.length; i++) {
+				full[count++] = second[i];
+			}
+			
+			byte[] buf = full;
+			int length = full.length;
+		    int i = 0;
+		    long sum = 0;
+		    while (length > 0) {
+		        sum += (buf[i++]&0xff) << 8;
+		        if ((--length)==0) break;
+		        sum += (buf[i++]&0xff);
+		        --length;
+		    }
+
+		    long x = (~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF;
+		    return Long.toBinaryString(x);
 		}
 
 

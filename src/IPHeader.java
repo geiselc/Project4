@@ -60,8 +60,24 @@ public class IPHeader {
 		return toSend;
 	}
 	
-	private void printL(String x) {
-		System.out.println(x.length() + "");
+	public byte[] getCheckData() {
+		String toBytes = version + ihl + tos + totalLength;
+		toBytes += iden + flags + offset;
+		toBytes += ttl + protocol + srcAddress + dstAddress;		
+		
+		byte[] toSend = new byte[19];
+		
+		String temp = "";
+		int count = 0;
+		
+		for(int i = 0; i < toBytes.length(); i++){
+			temp += ""+ toBytes.charAt(i);
+			if((i+1) % 8 == 0){
+				toSend[count++] = (byte)Integer.parseInt(temp,2);
+				temp = "";
+			}
+		}
+		return toSend;
 	}
 	
 	public String getVersion(){
