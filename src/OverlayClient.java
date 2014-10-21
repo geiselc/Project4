@@ -9,7 +9,7 @@ public class OverlayClient {
 	private String pre;
 	private static String file = "host-10A.txt";
 	private DatagramSocket clientSocket;
-	private int port = 9876;
+	private int port = 9875;
 
 	public static void main(String[] args) {
 		new OverlayClient(args[0]);
@@ -170,6 +170,7 @@ public class OverlayClient {
 			}
 			ipHead.setTotalLength(temp);
 
+			
 			ipHead.setCheckSum(ipCheckSum());
 			udpHead.setCheckSum(udpCheckSum());
 		}
@@ -230,7 +231,7 @@ public class OverlayClient {
 			 * long x = (~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF; return
 			 * Long.toBinaryString(x);
 			 */
-			return udpCSum();
+			return uc();
 		}
 
 		public String udpC() {
@@ -341,7 +342,7 @@ public class OverlayClient {
 				for (int i = 0; i < otherData.length; i++) {
 					n[i] = otherData[i];
 					if (i + 1 == otherData.length) {
-						n[i] = (byte) 0;
+						n[i+1] = (byte) 0;
 					}
 				}
 				otherData = n;
@@ -368,7 +369,12 @@ public class OverlayClient {
 
 			long x = (~((sum & 0xFFFF) + (sum >> 16))) & 0xFFFF;
 			System.out.println(x+"");
-			return Long.toBinaryString(x);
+			String y = Long.toBinaryString(x);
+			System.out.println(y);
+			while(y.length() < 16) {
+				y = "0" + y;
+			}
+			return y;
 		}
 
 		private String udpCSum() {
