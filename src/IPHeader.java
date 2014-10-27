@@ -1,6 +1,3 @@
-import java.nio.ByteBuffer;
-
-
 public class IPHeader {
 	protected String version;
 	protected String ihl;
