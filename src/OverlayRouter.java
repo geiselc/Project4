@@ -25,8 +25,8 @@ public class OverlayRouter {
 		prefixes = new HashMap<String, String>();
 		try {
 			readFile(file);
-			routerGetSocket = new DatagramSocket();
-			routerSendSocket = new DatagramSocket();
+			routerGetSocket = new DatagramSocket(9876);
+			routerSendSocket = new DatagramSocket(9875);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
