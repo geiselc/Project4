@@ -204,7 +204,6 @@ public class OverlayRouter {
 			ic.setCode("00000000");
 			
 			// set other data
-			// TODO
 			ic.setRest("00001010"+"000000000000000000000000");
 			
 			errorPacket(ip, ic);
