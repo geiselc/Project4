@@ -444,46 +444,44 @@ public class OverlayClient {
 				// get received packet into byte arrays
 				byte[] packet = receivePacket.getData();
 				byte[] ip = new byte[20];
-				byte[] udp = new byte[8];
-				byte[] temp = new byte[1024];
 				
-				for(int i = 28; i < packet.length; i++){
-					if(i <= 48){
-						ip[i-28] = packet[i];
-					} else if(i > 48 && i <= 56){
-						udp[i-49] = packet[i];
-					} else{
-						temp[i-57] = packet[i];
-					}
-				}
 				
-				// verify IP checksum
 				buildIP(ip);
-				String recvrIPCheckSum = ipCheckSum();
-				if(ipHead.checkSum.equals(recvrIPCheckSum)){
 				
-					// verify UDP checksum;
-					buildUDP(udp);
-					String recvrUDPCheckSum = udpCSum();
-					if(udpHead.checkSum.equals(recvrUDPCheckSum)){
-						if(udpHead.getData().equalsIgnoreCase("ERROR: IP CHECKSUM INVALID")){
-							System.out.println("ERROR: IP CHECKSUM INVALID");
-						} else if(udpHead.getData().equalsIgnoreCase("ERROR: UKNOWN PREFIX")){
-							System.out.println("ERROR: IP CHECKSUM INVALID");
-						} else if(udpHead.getData().equalsIgnoreCase("ERROR: TIME TO LIVE WAS ZERO")){
-							System.out.println("ERROR: TTL WAS ZERO");
+				if(ipHead.protocol.equals("00010001")){ // udp
+					byte[] udp = new byte[8];
+					byte[] temp = new byte[1024];
+				
+					for(int i = 28; i < packet.length; i++){
+						if(i <= 48){
+							ip[i-28] = packet[i];
+						} else if(i > 48 && i <= 56){
+							udp[i-49] = packet[i];
+						} else{
+							temp[i-57] = packet[i];
+						}
+					}
+					
+					// verify IP Checksum
+					String recvrIPCheckSum = ipCheckSum();
+					if(ipHead.checkSum.equals(recvrIPCheckSum)){
+						// verify UDP Checksum
+						buildUDP(udp);
+						String recvrUDPCheckSum = udpCSum();
+						if(udpHead.checkSum.equals(recvrUDPCheckSum)){
+							System.out.println("Message Recieved: " + udpHead.getData());
 						} else {
-							// print out message if no errors
-							System.out.println(udpHead.getData());
+							// TODO UDP Checksum mismatch - Handle it
 						}
 					} else {
-						System.out.println("Error: UDP Checksum mismatch");
+						// TODO IP Checksum mismatch - Handle it
 					}
-				} else {
-					System.out.println("Error: IP Checksum mismatch");
-				}
-			
-				
+				} else if(ipHead.protocol.equals("00000001")) { // icmp
+					// else packet is type ICMP, so parse differently
+					// TODO Code parsing 
+					byte[] icmp = new byte[8];
+					byte[] temp = new byte[1024];
+				}	
 			}
 		}
 		
