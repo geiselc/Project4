@@ -158,7 +158,6 @@ public class OverlayRouter {
 			
 			// set other data
 			ic.setRest("00000000000000000000000000000000");
-			System.out.println("error 1");
 			errorPacket(ip, ic);
 		}
 
@@ -174,7 +173,6 @@ public class OverlayRouter {
 
 			// set other data
 			ic.setRest("00000000000000000000000000000000");
-			System.out.println("error 2");
 			errorPacket(ip, ic);
 		}
 
@@ -190,7 +188,6 @@ public class OverlayRouter {
 			
 			// set other data
 			ic.setRest("00001010"+"000000000000000000000000");
-			System.out.println("error 3");
 			errorPacket(ip, ic);
 		}
 
@@ -227,7 +224,6 @@ public class OverlayRouter {
 		}
 
 		public void normalPack(IPHeader ip, UDPHeader udp, String dest) {
-			System.out.println("normal");
 			Write w = new Write(port, ip, udp, dest, null);
 			w.start();
 		}

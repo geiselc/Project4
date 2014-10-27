@@ -45,7 +45,7 @@ public class ICMPHeader {
 		return fin;
 	}
 	public byte[] getCheckData() {
-		String toBytes = type + code + checksum + rest;
+		String toBytes = type + code  + rest;
 			
 		byte[] toSend = new byte[toBytes.length() / 8];
 		
