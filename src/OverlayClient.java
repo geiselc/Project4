@@ -413,6 +413,7 @@ public class OverlayClient {
 	private class Read extends Thread {
 		private IPHeader ipHead;
 		private UDPHeader udpHead;
+		private ICMPHeader icHead;
 		private DatagramPacket receivePacket;
 
 		public Read() {
@@ -424,6 +425,7 @@ public class OverlayClient {
 			receivePacket = receive;
 			ipHead = new IPHeader();
 			udpHead = new UDPHeader();
+			icHead = new ICMPHeader();
 		}
 		
 		public void run() {
@@ -445,17 +447,16 @@ public class OverlayClient {
 				byte[] packet = receivePacket.getData();
 				byte[] ip = new byte[20];
 				
-				
+				for(int i = 28; i <= 48; i++)
+					ip[i-28] = packet[i];	
 				buildIP(ip);
 				
 				if(ipHead.protocol.equals("00010001")){ // udp
 					byte[] udp = new byte[8];
 					byte[] temp = new byte[1024];
 				
-					for(int i = 28; i < packet.length; i++){
-						if(i <= 48){
-							ip[i-28] = packet[i];
-						} else if(i > 48 && i <= 56){
+					for(int i = 49; i < packet.length; i++){
+						if(i > 48 && i <= 56){
 							udp[i-49] = packet[i];
 						} else{
 							temp[i-57] = packet[i];
@@ -467,20 +468,33 @@ public class OverlayClient {
 					if(ipHead.checkSum.equals(recvrIPCheckSum)){
 						// verify UDP Checksum
 						buildUDP(udp);
+						String s = new String(temp);
+						udpHead.setData(s);
 						String recvrUDPCheckSum = udpCSum();
 						if(udpHead.checkSum.equals(recvrUDPCheckSum)){
 							System.out.println("Message Recieved: " + udpHead.getData());
 						} else {
-							// TODO UDP Checksum mismatch - Handle it
+							// UDP Checksum mismatch
+							System.out.println("Could not receive message: UDP Checksum mismatch");
 						}
 					} else {
-						// TODO IP Checksum mismatch - Handle it
+						// IP Checksum mismatch
+						System.out.println("Could not receive message: IP Checksum mismatch");
 					}
 				} else if(ipHead.protocol.equals("00000001")) { // icmp
 					// else packet is type ICMP, so parse differently
-					// TODO Code parsing 
 					byte[] icmp = new byte[8];
 					byte[] temp = new byte[1024];
+					
+					for(int i = 49; i < packet.length; i++){
+						if(i > 48 && i <= 56){
+							icmp[i-49] = packet[i];
+						} else{
+							temp[i-57] = packet[i];
+						}
+					}
+					buildICMP(icmp);
+					
 				}	
 			}
 		}
@@ -655,6 +669,23 @@ public class OverlayClient {
 			String byteSeven = Integer.toBinaryString(toParse[6]);
 			String byteEight = Integer.toBinaryString(toParse[7]);
 			udpHead.setSrcPort(byteSeven+byteEight);
+		}
+		
+		public void buildICMP(byte[] data){
+			byte[] toParse = data;
+			
+			icHead.setType(Integer.toBinaryString(toParse[0]));
+			icHead.setCode(Integer.toBinaryString(toParse[1]));
+			
+			String byteThree = Integer.toBinaryString(toParse[2]);
+			String byteFour = Integer.toBinaryString(toParse[3]);
+			icHead.setChecksum(byteThree+byteFour);
+			
+			String byteFive = Integer.toBinaryString(toParse[4]);
+			String byteSix = Integer.toBinaryString(toParse[5]);
+			String byteSeven = Integer.toBinaryString(toParse[6]);
+			String byteEight = Integer.toBinaryString(toParse[7]);
+			icHead.setRest(byteFive+byteSix+byteSeven+byteEight);
 		}
 	}
 }
