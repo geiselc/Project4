@@ -470,7 +470,7 @@ public class OverlayClient {
 						buildUDP(udp);
 						String s = new String(temp);
 						udpHead.setData(s);
-						String recvrUDPCheckSum = udpCSum();
+						String recvrUDPCheckSum = uc();
 						if(udpHead.checkSum.equals(recvrUDPCheckSum)){
 							System.out.println("Message Recieved: " + udpHead.getData());
 						} else {
@@ -494,6 +494,9 @@ public class OverlayClient {
 						}
 					}
 					buildICMP(icmp);
+					String s = new String(temp);
+					icHead.setData(s);
+					System.out.println(icHead.getData());
 					
 				}	
 			}
@@ -516,12 +519,7 @@ public class OverlayClient {
 			return Long.toBinaryString(x);
 		}
 		
-		public String udpCSum() {
-			String result = "";
-			String add = "0000000000000000";
-			int a;
-			String temp2;
-			
+		private String uc() {
 			String toBytes = ipHead.srcAddress + ipHead.dstAddress + "00000000"
 					+ ipHead.protocol;
 			toBytes += udpHead.length + udpHead.srcPort + udpHead.dstPort
@@ -546,7 +544,7 @@ public class OverlayClient {
 				for (int i = 0; i < otherData.length; i++) {
 					n[i] = otherData[i];
 					if (i + 1 == otherData.length) {
-						n[i] = (byte) 0;
+						n[i+1] = (byte) 0;
 					}
 				}
 				otherData = n;
@@ -559,53 +557,24 @@ public class OverlayClient {
 			for (int i = 0; i < otherData.length; i++) {
 				fin[j++] = otherData[i];
 			}
-			/*
-			for (int i = 0; i < fin.length; i++) {
-				String str = Byte.toString(fin[i]);
-			}*/
-			byte[] inputData = fin;
-			long FF00 = 0xff00;
-            long FF = 0xff;
-            int length = inputData.length;
-            int i = 0;
+			byte[] buf = fin;
+			int length = buf.length;
+			int i = 0;
+			long sum = 0;
+			while (length > 0) {
+				sum += (buf[i++] & 0xff) << 8;
+				if ((--length) == 0)
+					break;
+				sum += (buf[i++] & 0xff);
+				--length;
+			}
 
-            long sum = 0;
-            long data;
-
-            // Handle all pairs
-            while (length > 1) {
-                    data = (((inputData[i] << 8) & FF00) | ((inputData[i + 1]) & FF));
-                    sum += data;
-                    // 1's complement carry bit correction in 16-bits (detecting sign
-                    // extension)
-                    if ((sum & 0xFFFF0000) > 0) {
-                            sum = sum & 0xFFFF;
-                            sum += 1;
-                    }
-
-                    i += 2;
-                    length -= 2;
-            }
-
-            // Handle remaining byte in odd length inputDatafers
-            if (length > 0) {
-                    sum += (inputData[i] << 8 & 0xFF00);
-                    // 1's complement carry bit correction in 16-bits (detecting sign
-                    // extension)
-                    if ((sum & 0xFFFF0000) > 0) {
-                            sum = sum & 0xFFFF;
-                            sum += 1;
-                    }
-            }
-
-            // Final 1's complement value correction to 16-bits
-            long inverted = ~sum;
-            inverted = inverted & 0xFFFF;
-            String x  = Long.toBinaryString(inverted);
-            while (x.length() < 16) {
-            	x = "0"+x;
-            }
-            return x;
+			long x = (~((sum & 0xFFFF) + (sum >> 16))) & 0xFFFF;
+			String y = Long.toBinaryString(x);
+			while(y.length() < 16) {
+				y = "0" + y;
+			}
+			return y;
 		}
 		
 		public void buildIP(byte[] data){
