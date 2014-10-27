@@ -12,7 +12,7 @@ import java.util.Map;
 public class OverlayRouter {
 	private List<String> addresses;
 	private Map<String, String> prefixes;
-	private int port = 9875;
+	private int port = 10295;
 	private DatagramSocket routerGetSocket;
 	private DatagramSocket routerSendSocket;
 
@@ -25,8 +25,8 @@ public class OverlayRouter {
 		prefixes = new HashMap<String, String>();
 		try {
 			readFile(file);
-			routerGetSocket = new DatagramSocket(9876);
-			routerSendSocket = new DatagramSocket(9875);
+			routerGetSocket = new DatagramSocket(port);
+			routerSendSocket = routerGetSocket;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -62,6 +62,7 @@ public class OverlayRouter {
 						data.length);
 				try {
 					routerGetSocket.receive(receivePacket);
+					System.out.println("Got Packet");
 				} catch (IOException e) {
 					System.out.println("Sorry, didn't get anything");
 					return;
@@ -147,6 +148,7 @@ public class OverlayRouter {
 		}
 
 		public void doesnotKnowPrefix(IPHeader ip) {
+			System.out.println("Error 1");
 			ICMPHeader ic = new ICMPHeader();
 
 			// set data
@@ -162,6 +164,7 @@ public class OverlayRouter {
 		}
 
 		public void timeToLiveIsZero(IPHeader ip) {
+			System.out.println("Error 2");
 			ICMPHeader ic = new ICMPHeader();
 
 			// set data
@@ -177,6 +180,7 @@ public class OverlayRouter {
 		}
 
 		public void checkSumWasNotValid(IPHeader ip) {
+			System.out.println("Error 3");
 			ICMPHeader ic = new ICMPHeader();
 
 			// set data
@@ -224,6 +228,7 @@ public class OverlayRouter {
 		}
 
 		public void normalPack(IPHeader ip, UDPHeader udp, String dest) {
+			System.out.println("Normal");
 			Write w = new Write(port, ip, udp, dest, null);
 			w.start();
 		}
@@ -338,7 +343,10 @@ public class OverlayRouter {
 			try {
 				DatagramPacket sendPacket = new DatagramPacket(sendData,
 						sendData.length, InetAddress.getByName(dest), port);
+				System.out.println(dest);
 				routerSendSocket.send(sendPacket);
+				System.out.println("Sent");
+				//routerGetSocket.send(sendPacket);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

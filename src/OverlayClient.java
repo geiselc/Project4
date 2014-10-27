@@ -8,7 +8,7 @@ public class OverlayClient {
 	private String pre;
 	private static String file = "host-10A.txt";
 	private DatagramSocket clientSocket;
-	private int port = 9876;
+	private int port = 10295;
 
 	public static void main(String[] args) {
 		new OverlayClient(args[0]);
@@ -34,7 +34,7 @@ public class OverlayClient {
 		}
 
 		try {
-			clientSocket = new DatagramSocket();
+			clientSocket = new DatagramSocket(port);
 		} catch (IOException e) {
 			e.printStackTrace();
 			clientSocket.close();
@@ -141,8 +141,8 @@ public class OverlayClient {
 			ipHead.setSrcAddress(ipToBits(ip));
 			ipHead.setDstAddress(ipToBits(dstIP));
 			/** Build the UDP Header */
-			udpHead.setSrcPort("0010011010010000"); // 9872
-			udpHead.setDstPort("0010011010010000"); // 9872
+			udpHead.setSrcPort("0010100000110111"); // 10295
+			udpHead.setDstPort("0010100000110111"); // 10295
 			int messageLength = message.getBytes().length;
 			String udpLength = Integer.toBinaryString(messageLength + 8);
 			while (udpLength.length() < 16) {
@@ -389,11 +389,9 @@ public class OverlayClient {
 		}
 
 		public void run() {
-			try {
-				sendSocket = new DatagramSocket(9875);
-			} catch (SocketException e1) {
-				e1.printStackTrace();
-			}
+			
+			sendSocket = clientSocket;
+			
 			while (true) {
 
 				// receive the packet
