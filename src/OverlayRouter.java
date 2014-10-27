@@ -57,31 +57,14 @@ public class OverlayRouter {
 	private class Read extends Thread {
 		public void run() {
 			while (true) {
-				byte[] receiveData = new byte[1024];
-				DatagramPacket receivePacket = new DatagramPacket(receiveData,
-						receiveData.length);
+				byte[] data = new byte[1024];
+				DatagramPacket receivePacket = new DatagramPacket(data,
+						data.length);
 				try {
 					routerGetSocket.receive(receivePacket);
 				} catch (IOException e) {
 					System.out.println("Sorry, didn't get anything");
 					return;
-				}
-				int length = 0;
-				for (int i = 50; i < receiveData.length; i++) {
-					byte b = receiveData[i];
-					if ((int) b == 0) {
-						length = i - 1;
-						// do not want the first IP and UDP header
-						length -= 28;
-						break;
-					}
-				}
-
-				// copy over the IP and UDP and data headers
-				// that the OverlayClient added
-				byte[] data = new byte[length];
-				for (int i = 0; i < length; i++) {
-					data[i] = receiveData[i + 28];
 				}
 				int pos = 0;
 
@@ -130,11 +113,13 @@ public class OverlayRouter {
 
 				// data is the rest
 				s = "";
-				for (int i = pos; i < length; i++) {
-					s = s + byteToBitString(data[i]);
+				udp.setData("");
+				for (int i = pos; i < Integer.parseInt(ip.getTotalLength(), 2); i++) {
+					s = byteToBitString(data[i]);
+					char next = (char)Integer.parseInt(s, 2);
+					udp.setData(udp.getData()+next);
 				}
-				udp.setData(s);
-
+				
 				String knowsPrefix = checkPrefix(ip.getDstAddress());
 
 				if (knowsPrefix.equals("")) {
@@ -173,7 +158,7 @@ public class OverlayRouter {
 			
 			// set other data
 			ic.setRest("00000000000000000000000000000000");
-
+			System.out.println("error 1");
 			errorPacket(ip, ic);
 		}
 
@@ -189,7 +174,7 @@ public class OverlayRouter {
 
 			// set other data
 			ic.setRest("00000000000000000000000000000000");
-			
+			System.out.println("error 2");
 			errorPacket(ip, ic);
 		}
 
@@ -205,7 +190,7 @@ public class OverlayRouter {
 			
 			// set other data
 			ic.setRest("00001010"+"000000000000000000000000");
-			
+			System.out.println("error 3");
 			errorPacket(ip, ic);
 		}
 
@@ -242,6 +227,7 @@ public class OverlayRouter {
 		}
 
 		public void normalPack(IPHeader ip, UDPHeader udp, String dest) {
+			System.out.println("normal");
 			Write w = new Write(port, ip, udp, dest, null);
 			w.start();
 		}
@@ -280,14 +266,14 @@ public class OverlayRouter {
 		int one = Integer.parseInt(prefix.substring(0, 8), 2);
 		int two = Integer.parseInt(prefix.substring(8, 16), 2);
 		int three = Integer.parseInt(prefix.substring(16, 24), 2);
-		int four = Integer.parseInt(prefix.substring(32), 2);
+		int four = Integer.parseInt(prefix.substring(24, 32), 2);
 		String pre1 = one + "." + two + "." + three + "." + four;
 		String[] input = pre1.split("\\.");
 
 		String[] keys = prefixes.keySet().toArray(new String[0]);
 		for (String key : keys) {
-			int value = Integer.parseInt(key.substring(1 + key.indexOf('\\')));
-			String pre2 = key.substring(key.indexOf('\\'));
+			int value = Integer.parseInt(key.substring(1 + key.indexOf('/')));
+			String pre2 = key.substring(0, key.indexOf('/'));
 			String[] known = pre2.split("\\.");
 
 			boolean[] b = new boolean[4];
