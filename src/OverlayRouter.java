@@ -138,20 +138,20 @@ public class OverlayRouter {
 				String knowsPrefix = checkPrefix(ip.getDstAddress());
 
 				if (knowsPrefix.equals("")) {
-					doesnotKnowPrefix(ip, udp);
+					doesnotKnowPrefix(ip);
 				} else if (ip.getTtl().equals("00000000")) {
-					timeToLiveIsZero(ip, udp);
+					timeToLiveIsZero(ip);
 				} else {
 					boolean validCheck = checkIPCheckSum(ip);
 					if (!validCheck) {
-						checkSumWasNotValid(ip, udp);
+						checkSumWasNotValid(ip);
 					} else {
 						String t = ip.getTtl();
 						int ttl = Integer.parseInt(t, 2);
-						ttl-=1;
+						ttl -= 1;
 						t = Integer.toBinaryString(ttl);
-						while(t.length() < 8) {
-							t = "0"+t;
+						while (t.length() < 8) {
+							t = "0" + t;
 						}
 						ip.setTtl(t);
 						ip.setCheckSum(getCheckSum(ip.getCheckData()));
@@ -161,59 +161,89 @@ public class OverlayRouter {
 			}
 		}
 
-		public void doesnotKnowPrefix(IPHeader ip, UDPHeader udp) {
-			udp.setData("ERROR: UNKNOWN PREFIX");
-			errorPacket(ip, udp);
-		}
+		public void doesnotKnowPrefix(IPHeader ip) {
+			ICMPHeader ic = new ICMPHeader();
 
-		public void timeToLiveIsZero(IPHeader ip, UDPHeader udp) {
-			udp.setData("ERROR: TIME TO LIVE WAS ZERO");
-			errorPacket(ip, udp);
-		}
+			// set data
+			ic.setData("ERROR: UNKNOWN PREFIX");
 
-		public void checkSumWasNotValid(IPHeader ip, UDPHeader udp) {
-			udp.setData("ERROR: IP CHECKSUM INVALID");
-			errorPacket(ip, udp);
-		}
-		
-		public void errorPacket(IPHeader ip, UDPHeader udp) {
+			// set type and code
+			ic.setType("00000011");
+			ic.setCode("00000001");
 			
+			// set other data
+			ic.setRest("00000000000000000000000000000000");
+
+			errorPacket(ip, ic);
+		}
+
+		public void timeToLiveIsZero(IPHeader ip) {
+			ICMPHeader ic = new ICMPHeader();
+
+			// set data
+			ic.setData("ERROR: TIME TO LIVE WAS ZERO");
+
+			// set type and code
+			ic.setType("00001011");
+			ic.setCode("00000000");
+
+			// set other data
+			ic.setRest("00000000000000000000000000000000");
+			
+			errorPacket(ip, ic);
+		}
+
+		public void checkSumWasNotValid(IPHeader ip) {
+			ICMPHeader ic = new ICMPHeader();
+
+			// set data
+			ic.setData("ERROR: IP CHECKSUM INVALID");
+
+			// set type and code
+			ic.setType("00001100");
+			ic.setCode("00000000");
+			
+			// set other data
+			// TODO
+			ic.setRest("00001010"+"000000000000000000000000");
+			
+			errorPacket(ip, ic);
+		}
+
+		public void errorPacket(IPHeader ip, ICMPHeader ic) {
+
+			// update protocol to one
+			ip.setProtocol("00000001");
+
 			// update TTL to 2
 			ip.setTtl("00000010");
-			
+
 			// change DEST to SRC
 			ip.setDstAddress(ip.getSrcAddress());
-			
+
 			// look up prefix in table
 			String dest = checkPrefix(ip.getDstAddress());
-			
-			// updates lengths
-			int messageLength = udp.getData().getBytes().length;
-			String udpLength = Integer.toBinaryString(messageLength + 8);
-			while (udpLength.length() < 16) {
-				udpLength = "0" + udpLength;
-			}
-			udp.setLength(udpLength);
 
-			String twenty = "00010100";
-			String temp = Long.toBinaryString(Long.parseLong(udpLength, 2)
-					+ Long.parseLong(twenty, 2));
+			// updates lengths
+			int messageLength = ic.getData().getBytes().length;
+			Long t = (long) (28 + messageLength);
+			String temp = Long.toBinaryString(t);
 			while (temp.length() < 16) {
 				temp = "0" + temp;
 			}
 			ip.setTotalLength(temp);
-			
+
 			// put in new checksums
 			ip.setCheckSum(getCheckSum(ip.getCheckData()));
-			udp.setCheckSum(uc(ip, udp));
-			
+			ic.setChecksum(getCheckSum(ic.getCheckData()));
+
 			// send packet
-			Write w = new Write(port, ip, udp, dest);
+			Write w = new Write(port, ip, null, dest, ic);
 			w.start();
 		}
-		
+
 		public void normalPack(IPHeader ip, UDPHeader udp, String dest) {
-			Write w = new Write(port, ip, udp, dest);
+			Write w = new Write(port, ip, udp, dest, null);
 			w.start();
 		}
 
@@ -238,67 +268,6 @@ public class OverlayRouter {
 
 			long x = (~((sum & 0xFFFF) + (sum >> 16))) & 0xFFFF;
 			return Long.toBinaryString(x);
-		}
-		
-		public String uc(IPHeader ipHead, UDPHeader udpHead) {
-
-			String toBytes = ipHead.srcAddress + ipHead.dstAddress + "00000000"
-					+ ipHead.protocol;
-			toBytes += udpHead.length + udpHead.srcPort + udpHead.dstPort
-					+ udpHead.length + udpHead.checkSum;
-
-			byte[] toSend = new byte[toBytes.length() / 8];
-
-			String temp = "";
-			int count = 0;
-
-			for (int i = 0; i < toBytes.length(); i++) {
-				temp += "" + toBytes.charAt(i);
-				if ((i + 1) % 8 == 0) {
-					toSend[count++] = (byte) Integer.parseInt(temp, 2);
-					temp = "";
-				}
-			}
-
-			byte[] otherData = udpHead.data.getBytes();
-			if (otherData.length % 2 == 1) {
-				byte[] n = new byte[otherData.length + 1];
-				for (int i = 0; i < otherData.length; i++) {
-					n[i] = otherData[i];
-					if (i + 1 == otherData.length) {
-						n[i+1] = (byte) 0;
-					}
-				}
-				otherData = n;
-			}
-			byte[] fin = new byte[toSend.length + otherData.length];
-			for (int i = 0; i < toSend.length; i++) {
-				fin[i] = toSend[i];
-			}
-			int j = toSend.length;
-			for (int i = 0; i < otherData.length; i++) {
-				fin[j++] = otherData[i];
-			}
-			byte[] buf = fin;
-			int length = buf.length;
-			int i = 0;
-			long sum = 0;
-			while (length > 0) {
-				sum += (buf[i++] & 0xff) << 8;
-				if ((--length) == 0)
-					break;
-				sum += (buf[i++] & 0xff);
-				--length;
-			}
-
-			long x = (~((sum & 0xFFFF) + (sum >> 16))) & 0xFFFF;
-			System.out.println(x+"");
-			String y = Long.toBinaryString(x);
-			System.out.println(y);
-			while(y.length() < 16) {
-				y = "0" + y;
-			}
-			return y;
 		}
 	}
 
@@ -356,18 +325,26 @@ public class OverlayRouter {
 		private IPHeader ip;
 		private UDPHeader udp;
 		private String dest;
+		private ICMPHeader ic;
 
-		public Write(int port, IPHeader ip, UDPHeader udp, String dest) {
+		public Write(int port, IPHeader ip, UDPHeader udp, String dest,
+				ICMPHeader ic) {
 			super();
 			this.port = port;
 			this.ip = ip;
 			this.udp = udp;
 			this.dest = dest;
+			this.ic = ic;
 		}
-		
+
 		public void run() {
 			byte[] send1 = ip.getMessageData();
-			byte[] send2 = udp.getMessageData();
+			byte[] send2;
+			if (udp != null) {
+				send2 = udp.getMessageData();
+			} else {
+				send2 = ic.getMessageData();
+			}
 			byte[] sendData = new byte[send1.length + send2.length];
 			int count = 0;
 			for (int i = 0; i < send1.length; i++) {
